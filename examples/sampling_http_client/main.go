@@ -56,7 +56,7 @@ func main() {
 
 	// Create HTTP transport directly
 	httpTransport, err := transport.NewStreamableHTTP(
-		"http://localhost:8080", // Replace with your MCP server URL
+		"http://localhost:8083/mcp", // Replace with your MCP server URL
 		// You can add HTTP-specific options here like headers, OAuth, etc.
 	)
 	if err != nil {
@@ -98,12 +98,42 @@ func main() {
 
 	log.Println("HTTP MCP client with sampling support started successfully!")
 	log.Println("The client is now ready to handle sampling requests from the server.")
-	log.Println("When the server sends a sampling request, the MockSamplingHandler will process it.")
+	log.Println("")
 
-	// In a real application, you would keep the client running to handle sampling requests
-	// For this example, we'll just demonstrate that it's working
+	// List available tools
+	toolsResult, err := mcpClient.ListTools(ctx, mcp.ListToolsRequest{})
+	if err != nil {
+		log.Fatalf("Failed to list tools: %v", err)
+	}
 
-	// Keep the client running (in a real app, you'd have your main application logic here)
+	log.Println("Available tools:")
+	for _, tool := range toolsResult.Tools {
+		log.Printf("  - %s: %s", tool.Name, tool.Description)
+	}
+	log.Println("")
+
+	// Test the echo tool
+	log.Println("--- Testing echo tool ---")
+	echoResult, err := mcpClient.CallTool(ctx, mcp.CallToolRequest{
+		Params: mcp.CallToolParams{
+			Name: "echo",
+			Arguments: map[string]any{
+				"message": "Hello from HTTP client!",
+			},
+		},
+	})
+	if err != nil {
+		log.Printf("Error calling echo tool: %v", err)
+	} else {
+		for _, content := range echoResult.Content {
+			if textContent, ok := content.(mcp.TextContent); ok {
+				log.Printf("Echo result: %s", textContent.Text)
+			}
+		}
+	}
+	log.Println("")
+
+	
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
 

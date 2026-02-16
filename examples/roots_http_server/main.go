@@ -62,7 +62,7 @@ func main() {
 	})
 
 	log.Println("Starting MCP Http server with roots support")
-	log.Println("Http Endpoint: http://localhost:8080/mcp")
+	log.Println("Http Endpoint: http://localhost:8083/mcp")
 	log.Println("")
 	log.Println("This server supports roots over HTTP transport.")
 	log.Println("Clients must:")
@@ -78,7 +78,7 @@ func main() {
 	httpOpts := []server.StreamableHTTPOption{}
 	httpServer := server.NewStreamableHTTPServer(mcpServer, httpOpts...)
 	fmt.Printf("Starting HTTP server\n")
-	if err := httpServer.Start(":8080"); err != nil {
+	if err := httpServer.Start(":8083"); err != nil {
 		fmt.Printf("HTTP server failed: %v\n", err)
 	}
 }

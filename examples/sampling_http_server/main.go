@@ -129,8 +129,8 @@ func main() {
 	// Create HTTP server
 	httpServer := server.NewStreamableHTTPServer(mcpServer)
 
-	log.Println("Starting HTTP MCP server with sampling support on :8080")
-	log.Println("Endpoint: http://localhost:8080/mcp")
+	log.Println("Starting HTTP MCP server with sampling support on :8083")
+	log.Println("Endpoint: http://localhost:8083/mcp")
 	log.Println("")
 	log.Println("This server supports sampling over HTTP transport.")
 	log.Println("Clients must:")
@@ -144,7 +144,7 @@ func main() {
 	log.Println("- echo: Simple echo tool (no sampling required)")
 
 	// Start the server
-	if err := httpServer.Start(":8080"); err != nil {
+	if err := httpServer.Start(":8083"); err != nil {
 		log.Fatalf("Server failed to start: %v", err)
-	}
+	} 
 }
