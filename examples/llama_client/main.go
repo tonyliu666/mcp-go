@@ -82,13 +82,24 @@ func main() {
 		history = append(history, ChatMessage{Role: "user", Content: input})
 
 		// Loop for potential multiple tool call rounds
+		stepCount := 0
+		maxSteps := 5
+
 		for {
+			stepCount++
+			if stepCount > maxSteps {
+				fmt.Println("\n[Error: Maximum tool call steps reached]")
+				break
+			}
+
 			// Get current tools from MCP server
 			mcpTools, err := mcpClient.ListTools(ctx, mcp.ListToolsRequest{})
 			if err != nil {
 				log.Printf("Error listing tools: %v", err)
 				break
 			}
+			log.Println("history: ", history)
+			log.Println("mcpTools: ", mcpTools)
 
 			// Send to Ollama
 			resp, err := ollama.Chat(ctx, history, mcpTools.Tools)
@@ -99,7 +110,7 @@ func main() {
 
 			msg := resp.Message
 			history = append(history, msg)
-
+			// what does the ToolCalls mean?
 			if len(msg.ToolCalls) == 0 {
 				fmt.Printf("\nLlama: %s\n", msg.Content)
 				break

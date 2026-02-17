@@ -19,6 +19,7 @@ type OllamaClient struct {
 }
 
 // NewOllamaClient creates a new client
+// now the ollama only support llama3.1
 func NewOllamaClient(baseURL, model string) *OllamaClient {
 	if baseURL == "" {
 		baseURL = "http://localhost:11434"
