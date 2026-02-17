@@ -67,8 +67,8 @@ type ToolCall struct {
 }
 
 type ToolCallFunction struct {
-	Name      string `json:"name"`
-	Arguments string `json:"arguments"` // string not object
+	Name      string          `json:"name"`
+	Arguments json.RawMessage `json:"arguments"`
 }
 
 // ChatResponse represents the response from Ollama
@@ -127,13 +127,18 @@ func (c *OllamaClient) Chat(ctx context.Context, messages []ChatMessage, tools [
 	}
 	defer resp.Body.Close()
 
+	// Read the body into a buffer so we can log it AND decode it
+	bodyBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response body: %w", err)
+	}
+
 	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("ollama API error (status %d): %s", resp.StatusCode, string(body))
+		return nil, fmt.Errorf("ollama API error (status %d): %s", resp.StatusCode, string(bodyBytes))
 	}
 
 	var chatResp ChatResponse
-	if err := json.NewDecoder(resp.Body).Decode(&chatResp); err != nil {
+	if err := json.Unmarshal(bodyBytes, &chatResp); err != nil {
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
 

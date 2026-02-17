@@ -1,49 +1,149 @@
 package main
 
 import (
+	"bufio"
 	"context"
+	"encoding/json"
 	"flag"
+	"fmt"
 	"log"
+	"os"
+	"strings"
 	"time"
 
+	"github.com/mark3labs/mcp-go/client"
+	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
 )
 
 func main() {
-	model := flag.String("model", "llama3.1", "Ollama model to use")
-	baseURL := flag.String("base-url", "http://localhost:11434", "Ollama API base URL")
+	modelName := flag.String("model", "llama3.1", "Ollama model to use")
+	ollamaURL := flag.String("ollama-url", "http://127.0.0.1:11434", "Ollama API base URL")
 	flag.Parse()
 
 	ctx := context.Background()
 
-	// 1. Create and Start the MCP Server (in-process for simplicity)
-	// In a real scenario, this might be a separate process
+	// 1. Create and Start the MCP Server
 	mcpServer := NewMCPServer()
-
-	// Create a pipe to connect client and server in-process
-	// We need two pipes: client->server and server->client
-	// However, the current SDK's Stdio transport relies on os.Stdin/os.Stdout
-	// For this example, we'll use a slightly different approach:
-	// We will launch the server in a way that we can talk to it,
-	// or we can use the "In-Memory" transport if available, but standard mcp-go uses stdio/sse.
-
-	// To keep it simple and robust without complex pipe management in this example,
-	// we will start the server on a local loopback SSE/HTTP port.
 	httpServer := server.NewStreamableHTTPServer(mcpServer)
+
 	go func() {
+		log.Printf("Starting local MCP server on :3000...")
 		if err := httpServer.Start("127.0.0.1:3000"); err != nil {
 			log.Fatalf("Server failed: %v", err)
 		}
 	}()
+
 	// Give server a moment to start
-	time.Sleep(100 * time.Millisecond)
+	time.Sleep(500 * time.Millisecond)
 
 	// 2. Initialize MCP Client
-	// Connect to the local server
-	// We need to use SSE client transport
-	// Note: The `simple_client` used "transport.NewStreamableHTTP"
-	// Let's copy that approach.
+	mcpClient, err := client.NewStreamableHttpClient("http://127.0.0.1:3000/mcp")
+	if err != nil {
+		log.Fatalf("Failed to create MCP client: %v", err)
+	}
 
-	// Re-using the transport package from the SDK which we need to import
-	// But since we are inside the `main` package here, we need to import it.
+	if err := mcpClient.Start(ctx); err != nil {
+		log.Fatalf("Failed to start MCP client: %v", err)
+	}
+
+	if _, err := mcpClient.Initialize(ctx, mcp.InitializeRequest{
+		Params: mcp.InitializeParams{
+			ClientInfo: mcp.Implementation{
+				Name:    "LlamaClientDemo",
+				Version: "1.0.0",
+			},
+		},
+	}); err != nil {
+		log.Fatalf("Failed to initialize MCP client: %v", err)
+	}
+	defer mcpClient.Close()
+
+	// 3. Initialize Ollama Client
+	ollama := NewOllamaClient(*ollamaURL, *modelName)
+
+	fmt.Printf("\n--- Llama MCP REPL (%s) ---\n", *modelName)
+	fmt.Println("Type 'exit' to quit.")
+
+	scanner := bufio.NewScanner(os.Stdin)
+	history := []ChatMessage{}
+
+	for {
+		fmt.Print("\n> ")
+		if !scanner.Scan() {
+			break
+		}
+		input := scanner.Text()
+
+		if strings.ToLower(input) == "exit" {
+			break
+		}
+
+		history = append(history, ChatMessage{Role: "user", Content: input})
+
+		// Loop for potential multiple tool call rounds
+		for {
+			// Get current tools from MCP server
+			mcpTools, err := mcpClient.ListTools(ctx, mcp.ListToolsRequest{})
+			if err != nil {
+				log.Printf("Error listing tools: %v", err)
+				break
+			}
+
+			// Send to Ollama
+			resp, err := ollama.Chat(ctx, history, mcpTools.Tools)
+			if err != nil {
+				log.Printf("Ollama error: %v", err)
+				break
+			}
+
+			msg := resp.Message
+			history = append(history, msg)
+
+			if len(msg.ToolCalls) == 0 {
+				fmt.Printf("\nLlama: %s\n", msg.Content)
+				break
+			}
+
+			// Handle tool calls
+			for _, tc := range msg.ToolCalls {
+				fmt.Printf("[Calling Tool: %s with %s]\n", tc.Function.Name, tc.Function.Arguments)
+
+				var args map[string]any
+				if err := json.Unmarshal([]byte(tc.Function.Arguments), &args); err != nil {
+					log.Printf("Failed to parse tool arguments: %v", err)
+					continue
+				}
+
+				result, err := mcpClient.CallTool(ctx, mcp.CallToolRequest{
+					Params: mcp.CallToolParams{
+						Name:      tc.Function.Name,
+						Arguments: args,
+					},
+				})
+
+				var resultText string
+				if err != nil {
+					resultText = fmt.Sprintf("Error: %v", err)
+				} else {
+					// We assume simple text result for this demo
+					for _, c := range result.Content {
+						switch v := c.(type) {
+						case mcp.TextContent:
+							resultText += v.Text
+						case *mcp.TextContent:
+							resultText += v.Text
+						}
+					}
+				}
+
+				fmt.Printf("[Tool Result: %s]\n", resultText)
+				history = append(history, ChatMessage{
+					Role:    "tool",
+					Content: resultText,
+				})
+			}
+			// Let Ollama process the tool results in the next iteration of the inner loop
+		}
+	}
 }

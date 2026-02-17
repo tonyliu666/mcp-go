@@ -32,9 +32,10 @@ func NewMCPServer() *server.MCPServer {
 	)
 
 	s.AddTool(calculateTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		op := request.Params.Arguments["operation"].(string)
-		a := request.Params.Arguments["a"].(float64)
-		b := request.Params.Arguments["b"].(float64)
+		args := request.GetArguments()
+		op := args["operation"].(string)
+		a := args["a"].(float64)
+		b := args["b"].(float64)
 
 		var result float64
 		switch op {
