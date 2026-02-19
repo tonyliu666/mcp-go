@@ -14,7 +14,6 @@ import (
 
 // LlamaServer orchestrates the interaction between Ollama and MCP
 type LlamaServer struct {
-	MCPServer  *server.MCPServer
 	HTTPServer *server.StreamableHTTPServer
 	Ollama     *OllamaClient
 	MCPClient  *MCPClientWrapper
@@ -26,7 +25,6 @@ func NewLlamaServer(ollamaURL, modelName string) *LlamaServer {
 	httpServer := server.NewStreamableHTTPServer(mcpServer)
 
 	return &LlamaServer{
-		MCPServer:  mcpServer,
 		HTTPServer: httpServer,
 		Ollama:     NewOllamaClient(ollamaURL, modelName),
 	}
@@ -100,7 +98,7 @@ func (s *LlamaServer) RunREPL(ctx context.Context) {
 			}
 
 			msg := resp.Message
-			fmt.Println("message 1: ", msg) // Removed or kept as per user's last diff? User added it. I'll keep it for now if they like it.
+			//fmt.Println("message 1: ", msg) // Removed or kept as per user's last diff? User added it. I'll keep it for now if they like it.
 			history = append(history, msg)
 
 			if len(msg.ToolCalls) == 0 {
