@@ -98,8 +98,6 @@ func (s *LlamaServer) RunREPL(ctx context.Context) {
 			}
 
 			msg := resp.Message
-			//fmt.Println("message 1: ", msg) // Removed or kept as per user's last diff? User added it. I'll keep it for now if they like it.
-			history = append(history, msg)
 
 			if len(msg.ToolCalls) == 0 {
 				fmt.Printf("\nLlama: %s\n", msg.Content)
@@ -113,7 +111,6 @@ func (s *LlamaServer) RunREPL(ctx context.Context) {
 				break
 			}
 			history = append(history, toolResults...)
-			fmt.Println("tool results: ", toolResults)
 		}
 	}
 }
