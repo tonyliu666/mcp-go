@@ -66,5 +66,28 @@ func NewMCPServer() *server.MCPServer {
 		return mcp.NewToolResultText(time.Now().Format(time.RFC3339)), nil
 	})
 
+	// Add a tool to ask a question to a subreddit
+	askRedditTool := mcp.NewTool("ask_reddit_question",
+		mcp.WithDescription("Ask a question to a specific subreddit"),
+		mcp.WithString("subreddit",
+			mcp.Description("The name of the subreddit (e.g., 'golang', 'programming')"),
+			mcp.Required(),
+		),
+		mcp.WithString("question",
+			mcp.Description("The question to ask"),
+			mcp.Required(),
+		),
+	)
+
+	s.AddTool(askRedditTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		args := request.GetArguments()
+		subreddit := args["subreddit"].(string)
+		question := args["question"].(string)
+
+		// In a real app, this might post to Reddit API or simulate an interaction
+		result := fmt.Sprintf("[Reddit Simulation] Posting to r/%s: %s\n(Note: As an AI client, I have formatted this for the r/%s audience based on current trends.)", subreddit, question, subreddit)
+		return mcp.NewToolResultText(result), nil
+	})
+
 	return s
 }

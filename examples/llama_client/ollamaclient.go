@@ -19,7 +19,6 @@ type OllamaClient struct {
 }
 
 // NewOllamaClient creates a new client
-// now the ollama only support llama3.1
 func NewOllamaClient(baseURL, model string) *OllamaClient {
 	if baseURL == "" {
 		baseURL = "http://localhost:11434"
@@ -85,10 +84,6 @@ func (c *OllamaClient) Chat(ctx context.Context, messages []ChatMessage, tools [
 	// Convert MCP tools to Ollama tools
 	ollamaTools := make([]Tool, len(tools))
 	for i, t := range tools {
-		// MCP tools schema is already compatible with OpenAI/Ollama function calling schema
-		// But we need to ensure it's wrapped correctly
-
-		// The inputSchema in mcp.Tool is technically interface{}, usually a map
 		schemaBytes, err := json.Marshal(t.InputSchema)
 		if err != nil {
 			return nil, fmt.Errorf("failed to marshal tool schema: %w", err)
@@ -128,7 +123,6 @@ func (c *OllamaClient) Chat(ctx context.Context, messages []ChatMessage, tools [
 	}
 	defer resp.Body.Close()
 
-	// Read the body into a buffer so we can log it AND decode it
 	bodyBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read response body: %w", err)
