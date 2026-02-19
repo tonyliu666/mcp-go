@@ -1,11 +1,35 @@
 ### Architecture:
 
-graph TD
-    OS1[Ollama Server] --> MC[MCP Clients]
-    OS1 --> HS[HTTP Server / MCP Server]
-    OS1 --> OC[Ollama Client]
+```text
+┌─────────────────────────────────────────────────────────┐
+│                      Ollama Server                      │
+└─────────────────────────────────────────────────────────┘
+          │                 │                │
+          ▼                 ▼                ▼
+  ┌───────────────┐ ┌───────────────┐ ┌────────────────┐
+  │  MCP Clients  │ │  HTTP Server  │ │  Ollama Client │
+  └───────┬───────┘ │ (MCP Server)  │ └────────┬───────┘
+          │         └───────┬───────┘          │
+          │ connects        │                  │ Request (1)
+          └───────►         │                  ▼
+          ◄─────────────────┘          ┌────────────────┐
+             Get MCP Tools             │  Ollama Server │
+                                       └────────┬───────┘
+                                                │
+                                                ▼
+                                    Ask which tool should cope
+                                       with the question?
+                                                │
+                                                ▼
+                                       ┌────────────────┐
+                                       │  Request (2):  │
+                                       │ Execution Order│
+                                       └────────────────┘
+```
 
-    OC -- "Request (1)" --> OS2[Ollama Server]
-    OS2 -- "Ask which tool?" --> RO["Request (2): Execution Order"]
+### How it works:
 
-    MC -- "Get MCP Tools" --- HS
+1. **MCP Server**: Runs locally on port 3000 and exposes MCP tools.
+2. **Ollama Client**: Connects to the MCP Server to get tools.
+3. **Ollama Server**: Receives tools from MCP Server and uses them to answer questions.
+
