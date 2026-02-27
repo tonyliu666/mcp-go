@@ -26,6 +26,24 @@
                                        │ Execution Order│
                                        └────────────────┘
 ```
+### quick start
+```bash
+# install nvidia container toolkit first (https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html)
+
+# First intialize Ollama Server
+sudo docker run -d \
+  --gpus=all \
+  -v ollama:/root/.ollama \
+  -p 11434:11434 \
+  --name ollama \
+  ollama/ollama
+
+# pull llama3 model
+sudo docker exec -it ollama ollama pull llama3
+
+# All in one run 
+  go run . (in examples/llama_client directory)
+```
 
 ### How it works:
 
