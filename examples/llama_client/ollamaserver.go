@@ -57,7 +57,7 @@ func (s *LlamaServer) RunREPL(ctx context.Context) {
 	fmt.Println("Type 'exit' to quit.")
 
 	scanner := bufio.NewScanner(os.Stdin)
-	history := []ChatMessage{}
+	
 
 	for {
 		fmt.Print("\n> ")
@@ -69,7 +69,7 @@ func (s *LlamaServer) RunREPL(ctx context.Context) {
 		if strings.ToLower(input) == "exit" {
 			break
 		}
-
+		history := []ChatMessage{}
 		history = append(history, ChatMessage{Role: "user", Content: input})
 
 		// Loop for potential multiple tool call rounds

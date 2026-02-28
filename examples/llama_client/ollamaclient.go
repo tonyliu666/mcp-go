@@ -100,10 +100,22 @@ func (c *OllamaClient) Chat(ctx context.Context, messages []ChatMessage, tools [
 	}
 
 	reqBody := ChatRequest{
-		Model:    c.Model,
-		Messages: messages,
-		Tools:    ollamaTools,
-		Stream:   false,
+		Model: c.Model,
+		Messages: append([]ChatMessage{
+			{
+				Role: "system",
+				Content: "You are a helpful assistant with deep knowledge of Reddit. " +
+					"When answering questions, use the available MCP tools to search Reddit for discussions. " +
+					"After receiving tool results, always recommend the most relevant and specific subreddits " +
+					"the user should browse for their topic — use your own knowledge of Reddit communities to pick " +
+					"subreddits that actually exist and are active. Do NOT always suggest generic ones like r/AskReddit " +
+					"if there is a more specific community available (e.g. prefer r/studyabroad over r/AskReddit for " +
+					"study abroad questions, r/personalfinance for money questions, r/learnprogramming for coding, etc.). " +
+					"Format your subreddit recommendations clearly in the final answer.",
+			},
+		}, messages...),
+		Tools:  ollamaTools,
+		Stream: false,
 	}
 
 	jsonBody, err := json.Marshal(reqBody)
