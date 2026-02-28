@@ -59,7 +59,6 @@ func (w *MCPClientWrapper) HandleToolCalls(ctx context.Context, toolCalls []Tool
 	var toolResults []ChatMessage
 
 	for _, tc := range toolCalls {
-		fmt.Printf("[Calling Tool: %s with %s]\n", tc.Function.Name, tc.Function.Arguments)
 
 		var args map[string]any
 		if err := json.Unmarshal([]byte(tc.Function.Arguments), &args); err != nil {
@@ -88,7 +87,7 @@ func (w *MCPClientWrapper) HandleToolCalls(ctx context.Context, toolCalls []Tool
 			}
 		}
 
-		fmt.Printf("[Tool Result: %s]\n", resultText)
+		// log.Printf("[Tool Result: %s]\n", resultText)
 		toolResults = append(toolResults, ChatMessage{
 			Role:    "tool",
 			Content: resultText,

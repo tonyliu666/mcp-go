@@ -1,12 +1,9 @@
 package main
 
 import (
-	"bufio"
 	"context"
 	"fmt"
 	"log"
-	"os"
-	"strings"
 	"time"
 
 	"github.com/mark3labs/mcp-go/server"
@@ -51,68 +48,43 @@ func (s *LlamaServer) Start(ctx context.Context) error {
 	return nil
 }
 
-// RunREPL starts the interactive chat loop
-func (s *LlamaServer) RunREPL(ctx context.Context) {
-	fmt.Printf("\n--- Llama MCP REPL (%s) ---\n", s.Ollama.Model)
-	fmt.Println("Type 'exit' to quit.")
-
-	scanner := bufio.NewScanner(os.Stdin)
-	
-
-	for {
-		fmt.Print("\n> ")
-		if !scanner.Scan() {
-			break
-		}
-		input := scanner.Text()
-
-		if strings.ToLower(input) == "exit" {
-			break
-		}
-		history := []ChatMessage{}
-		history = append(history, ChatMessage{Role: "user", Content: input})
-
-		// Loop for potential multiple tool call rounds
-		stepCount := 0
-		maxSteps := 5
-
-		for {
-			stepCount++
-			if stepCount > maxSteps {
-				fmt.Println("\n[Error: Maximum tool call steps reached]")
-				break
-			}
-
-			// Get current tools from MCP server
-			mcpTools, err := s.MCPClient.ListTools(ctx)
-			if err != nil {
-				log.Printf("Error listing tools: %v", err)
-				break
-			}
-
-			// Send to Ollama
-			resp, err := s.Ollama.Chat(ctx, history, mcpTools)
-			if err != nil {
-				log.Printf("Ollama error: %v", err)
-				break
-			}
-
-			msg := resp.Message
-
-			if len(msg.ToolCalls) == 0 {
-				fmt.Printf("\nLlama: %s\n", msg.Content)
-				break
-			}
-
-			// Handle tool calls
-			toolResults, err := s.MCPClient.HandleToolCalls(ctx, msg.ToolCalls)
-			if err != nil {
-				log.Printf("Tool handling error: %v", err)
-				break
-			}
-			history = append(history, toolResults...)
-		}
+// Ask runs the Ollama+MCP agentic loop for a single question and returns
+// the final text response. It is safe to call concurrently.
+func (s *LlamaServer) Ask(ctx context.Context, question string) (string, error) {
+	history := []ChatMessage{
+		{Role: "user", Content: question},
 	}
+
+	const maxSteps = 5
+	for step := 0; step < maxSteps; step++ {
+		// Get current tools from MCP server
+		mcpTools, err := s.MCPClient.ListTools(ctx)
+		if err != nil {
+			return "", fmt.Errorf("listing tools: %w", err)
+		}
+
+		// Send to Ollama
+		resp, err := s.Ollama.Chat(ctx, history, mcpTools)
+		if err != nil {
+			return "", fmt.Errorf("ollama chat: %w", err)
+		}
+
+		msg := resp.Message
+
+		// No tool calls → Ollama produced a final answer
+		if len(msg.ToolCalls) == 0 {
+			return msg.Content, nil
+		}
+
+		// Execute tool calls and feed results back into history
+		toolResults, err := s.MCPClient.HandleToolCalls(ctx, msg.ToolCalls)
+		if err != nil {
+			return "", fmt.Errorf("handling tool calls: %w", err)
+		}
+		history = append(history, toolResults...)
+	}
+
+	return "", fmt.Errorf("maximum tool call steps reached without a final answer")
 }
 
 // Close cleans up resources

@@ -42,7 +42,7 @@ sudo docker run -d \
 sudo docker exec -it ollama ollama pull llama3
 
 # All in one run 
-  go run . (in examples/llama_client directory)
+  go run . --model llama3.1 --addr :8085 (in examples/llama_client directory)
 ```
 
 ### How it works:

@@ -9,6 +9,7 @@ import (
 func main() {
 	modelName := flag.String("model", "llama3.1", "Ollama model to use")
 	ollamaURL := flag.String("ollama-url", "http://127.0.0.1:11434", "Ollama API base URL")
+	ginAddr := flag.String("addr", ":8085", "Gin HTTP server listen address")
 	flag.Parse()
 
 	ctx := context.Background()
@@ -22,6 +23,6 @@ func main() {
 		log.Fatalf("Failed to start orchestrator: %v", err)
 	}
 
-	// Run the REPL
-	orchestrator.RunREPL(ctx)
+	// Start the Gin HTTP server (blocks)
+	StartGinRouter(orchestrator, *ginAddr)
 }
