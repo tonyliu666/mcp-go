@@ -73,6 +73,7 @@ func (s *LlamaServer) Ask(ctx context.Context, question string) (string, error) 
 
 		// No tool calls → Ollama produced a final answer
 		if len(msg.ToolCalls) == 0 {
+			//log.Printf("[Ollama] Final answer: %s", msg.Content)
 			return msg.Content, nil
 		}
 

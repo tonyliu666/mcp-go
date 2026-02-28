@@ -28,7 +28,8 @@
 ```
 ### quick start
 ```bash
-# install nvidia container toolkit first (https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html)
+# install nvidia container toolkit first 
+ref: https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html
 
 # First intialize Ollama Server
 sudo docker run -d \
@@ -43,6 +44,11 @@ sudo docker exec -it ollama ollama pull llama3
 
 # All in one run 
   go run . --model llama3.1 --addr :8085 (in examples/llama_client directory)
+
+### curl command testing
+curl -X POST http://localhost:8085/chat \
+  -H "Content-Type: application/json" \
+  -d '{"sender":"You","content":"if I want to study abroad, what should I know?","type":"CHAT"}'
 ```
 
 ### How it works:
